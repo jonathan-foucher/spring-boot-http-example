@@ -1,0 +1,14 @@
+server:
+  port: 8090
+  servlet:
+    context-path: /http-api-example
+
+spring:
+  jackson:
+    property-naming-strategy: com.fasterxml.jackson.databind.PropertyNamingStrategies.SnakeCaseStrategy
+
+movie-api:
+  base-url: http://localhost:8091/movie-api
+  api-key: some-api-key
+  movies-path: /movies
+  movie-by-id-path: /movies/{movie_id}
