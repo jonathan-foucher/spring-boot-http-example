@@ -1,5 +1,6 @@
 package com.jonathanfoucher.httpexample.controllers.advisers;
 
+import com.jonathanfoucher.httpexample.common.errors.MovieNotFoundException;
 import com.jonathanfoucher.httpexample.common.errors.MovieNotValidException;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.event.Level;
@@ -25,7 +26,7 @@ import static org.springframework.http.HttpStatus.*;
 public class CustomResponseEntityExceptionHandler extends ResponseEntityExceptionHandler {
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-    @ExceptionHandler(HttpClientErrorException.NotFound.class)
+    @ExceptionHandler({HttpClientErrorException.NotFound.class, MovieNotFoundException.class})
     public ResponseEntity<ProblemDetail> handleNotFoundExceptions(Exception exception, WebRequest request) {
         return generateResponseEntity(exception, request, NOT_FOUND, WARN);
     }
