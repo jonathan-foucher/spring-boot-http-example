@@ -5,7 +5,7 @@ server:
 
 spring:
   jackson:
-    property-naming-strategy: com.fasterxml.jackson.databind.PropertyNamingStrategies.SnakeCaseStrategy
+    property-naming-strategy: SNAKE_CASE
 
 movie-api:
   base-url: http://localhost:8091/movie-api

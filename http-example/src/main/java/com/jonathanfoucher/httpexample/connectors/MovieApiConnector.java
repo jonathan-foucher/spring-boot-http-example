@@ -2,7 +2,7 @@ package com.jonathanfoucher.httpexample.connectors;
 
 import com.jonathanfoucher.httpexample.connectors.configs.MovieApiConfig;
 import com.jonathanfoucher.httpexample.data.dto.MovieDto;
-import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.boot.restclient.RestTemplateBuilder;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;

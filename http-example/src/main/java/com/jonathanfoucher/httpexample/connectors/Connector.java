@@ -1,7 +1,7 @@
 package com.jonathanfoucher.httpexample.connectors;
 
 import com.jonathanfoucher.httpexample.connectors.interceptors.CorrelationIdInterceptor;
-import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.boot.restclient.RestTemplateBuilder;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;

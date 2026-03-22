@@ -1,15 +1,11 @@
 package com.jonathanfoucher.httpexample.connectors;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.json.JsonMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.jonathanfoucher.httpexample.connectors.configs.MovieApiConfig;
 import com.jonathanfoucher.httpexample.data.dto.MovieDto;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.client.RestClientTest;
+import org.springframework.boot.restclient.test.autoconfigure.RestClientTest;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -20,13 +16,13 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.util.UriComponentsBuilder;
+import tools.jackson.databind.PropertyNamingStrategies;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.net.URI;
 import java.time.LocalDate;
 import java.util.Optional;
 
-import static com.fasterxml.jackson.databind.PropertyNamingStrategies.SNAKE_CASE;
-import static com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS;
 import static com.jonathanfoucher.httpexample.data.enums.AdditionalHttpHeaders.API_KEY_HEADER;
 import static com.jonathanfoucher.httpexample.data.enums.AdditionalHttpHeaders.CORRELATION_ID_HEADER;
 import static org.junit.jupiter.api.Assertions.*;
@@ -61,15 +57,9 @@ class MovieApiConnectorTest {
     private static final String TITLE = "Some movie";
     private static final LocalDate RELEASE_DATE = LocalDate.of(2022, 7, 19);
 
-    private static final ObjectMapper objectMapper;
-
-    static {
-        objectMapper = JsonMapper.builder()
-                .addModule(new JavaTimeModule())
-                .propertyNamingStrategy(SNAKE_CASE)
-                .configure(WRITE_DATES_AS_TIMESTAMPS, false)
-                .build();
-    }
+    private static final JsonMapper jsonMapper = JsonMapper.builder()
+            .propertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
+            .build();
 
     @BeforeEach
     void init() {
@@ -106,7 +96,7 @@ class MovieApiConnectorTest {
     }
 
     @Test
-    void getMovieById() throws JsonProcessingException {
+    void getMovieById() {
         // GIVEN
         MovieDto movie = initMovie();
 
@@ -114,7 +104,7 @@ class MovieApiConnectorTest {
                 .andExpect(method(GET))
                 .andExpect(header(CORRELATION_ID_HEADER.getHeaderName(), CORRELATION_ID))
                 .andExpect(header(API_KEY_HEADER.getHeaderName(), API_KEY))
-                .andRespond(withSuccess(objectMapper.writeValueAsString(movie), APPLICATION_JSON));
+                .andRespond(withSuccess(jsonMapper.writeValueAsString(movie), APPLICATION_JSON));
 
         // WHEN
         Optional<MovieDto> resultOpt = movieApiConnector.getMovieById(ID);
@@ -131,13 +121,13 @@ class MovieApiConnectorTest {
     }
 
     @Test
-    void getMovieByIdWithoutResult() throws JsonProcessingException {
+    void getMovieByIdWithoutResult() {
         // GIVEN
         server.expect(once(), requestTo(getMovieByIdUri()))
                 .andExpect(method(GET))
                 .andExpect(header(CORRELATION_ID_HEADER.getHeaderName(), CORRELATION_ID))
                 .andExpect(header(API_KEY_HEADER.getHeaderName(), API_KEY))
-                .andRespond(withSuccess(objectMapper.writeValueAsString(null), APPLICATION_JSON));
+                .andRespond(withSuccess(jsonMapper.writeValueAsString(null), APPLICATION_JSON));
 
         // WHEN
         Optional<MovieDto> resultOpt = movieApiConnector.getMovieById(ID);
@@ -148,7 +138,7 @@ class MovieApiConnectorTest {
     }
 
     @Test
-    void saveMovie() throws JsonProcessingException {
+    void saveMovie() {
         // GIVEN
         MovieDto movie = initMovie();
 
@@ -157,7 +147,7 @@ class MovieApiConnectorTest {
                 .andExpect(header(CORRELATION_ID_HEADER.getHeaderName(), CORRELATION_ID))
                 .andExpect(header(API_KEY_HEADER.getHeaderName(), API_KEY))
                 .andExpect(header(CONTENT_TYPE, APPLICATION_JSON_VALUE))
-                .andExpect(content().string(objectMapper.writeValueAsString(movie)))
+                .andExpect(content().string(jsonMapper.writeValueAsString(movie)))
                 .andRespond(withSuccess());
 
         // WHEN

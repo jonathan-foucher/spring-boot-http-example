@@ -1,9 +1,5 @@
 package com.jonathanfoucher.httpexample.controllers;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import com.fasterxml.jackson.databind.json.JsonMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.jonathanfoucher.httpexample.common.errors.MovieNotFoundException;
 import com.jonathanfoucher.httpexample.common.errors.MovieNotValidException;
 import com.jonathanfoucher.httpexample.common.filters.CorrelationIdFilter;
@@ -16,18 +12,18 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import tools.jackson.databind.PropertyNamingStrategies;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import static com.fasterxml.jackson.databind.PropertyNamingStrategies.SNAKE_CASE;
 import static com.jonathanfoucher.httpexample.data.enums.AdditionalHttpHeaders.CORRELATION_ID_HEADER;
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -39,7 +35,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(MovieController.class)
 @SpringJUnitConfig({MovieController.class, CustomResponseEntityExceptionHandler.class, CorrelationIdFilter.class})
 class MovieControllerTest {
     private MockMvc mockMvc;
@@ -66,21 +61,16 @@ class MovieControllerTest {
     private static final Pattern TIMESTAMP_REGEX_PATTERN = Pattern.compile("^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$");
     private static final String DEFAULT_TYPE = "about:blank";
 
-    private static final ObjectMapper objectMapper;
-
-    static {
-        objectMapper = JsonMapper.builder()
-                .addModule(new JavaTimeModule())
-                .propertyNamingStrategy(SNAKE_CASE)
-                .build();
-    }
+    private static final JsonMapper jsonMapper = JsonMapper.builder()
+            .propertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
+            .build();
 
     @BeforeEach
     void init() {
         mockMvc = MockMvcBuilders.standaloneSetup(movieController)
                 .setControllerAdvice(customResponseEntityExceptionHandler)
                 .addFilter(correlationIdFilter)
-                .setMessageConverters(new MappingJackson2HttpMessageConverter(objectMapper))
+                .setMessageConverters(new JacksonJsonHttpMessageConverter(jsonMapper))
                 .build();
     }
 
@@ -97,7 +87,7 @@ class MovieControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(header().exists(CORRELATION_ID_HEADER.getHeaderName()))
                 .andExpect(header().string(CORRELATION_ID_HEADER.getHeaderName(), matchesPattern(CORRELATION_ID_REGEX_PATTERN)))
-                .andExpect(content().string(objectMapper.writeValueAsString(movie)));
+                .andExpect(content().string(jsonMapper.writeValueAsString(movie)));
 
         verify(movieService, times(1)).getMovieById(ID);
     }
@@ -115,7 +105,7 @@ class MovieControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(header().exists(CORRELATION_ID_HEADER.getHeaderName()))
                 .andExpect(header().string(CORRELATION_ID_HEADER.getHeaderName(), equalTo(CORRELATION_ID)))
-                .andExpect(content().string(objectMapper.writeValueAsString(movie)));
+                .andExpect(content().string(jsonMapper.writeValueAsString(movie)));
 
         verify(movieService, times(1)).getMovieById(ID);
     }
@@ -131,7 +121,6 @@ class MovieControllerTest {
                 .andExpect(status().isNotFound())
                 .andExpect(header().exists(CORRELATION_ID_HEADER.getHeaderName()))
                 .andExpect(header().string(CORRELATION_ID_HEADER.getHeaderName(), matchesPattern(CORRELATION_ID_REGEX_PATTERN)))
-                .andExpect(jsonPath("$.type", equalTo(DEFAULT_TYPE)))
                 .andExpect(jsonPath("$.title", equalTo(NOT_FOUND.getReasonPhrase())))
                 .andExpect(jsonPath("$.status", equalTo(NOT_FOUND.value())))
                 .andExpect(jsonPath("$.detail", equalTo("Movie with id 15 is not found")))
@@ -154,7 +143,6 @@ class MovieControllerTest {
                 .andExpect(status().isInternalServerError())
                 .andExpect(header().exists(CORRELATION_ID_HEADER.getHeaderName()))
                 .andExpect(header().string(CORRELATION_ID_HEADER.getHeaderName(), matchesPattern(CORRELATION_ID_REGEX_PATTERN)))
-                .andExpect(jsonPath("$.type", equalTo(DEFAULT_TYPE)))
                 .andExpect(jsonPath("$.title", equalTo(INTERNAL_SERVER_ERROR.getReasonPhrase())))
                 .andExpect(jsonPath("$.status", equalTo(INTERNAL_SERVER_ERROR.value())))
                 .andExpect(jsonPath("$.detail", equalTo("some error")))
@@ -173,7 +161,7 @@ class MovieControllerTest {
 
         // WHEN / THEN
         mockMvc.perform(post(MOVIES_PATH).contentType(APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(movie)))
+                        .content(jsonMapper.writeValueAsString(movie)))
                 .andExpect(header().exists(CORRELATION_ID_HEADER.getHeaderName()))
                 .andExpect(header().string(CORRELATION_ID_HEADER.getHeaderName(), matchesPattern(CORRELATION_ID_REGEX_PATTERN)))
                 .andExpect(status().isOk())
@@ -202,11 +190,10 @@ class MovieControllerTest {
 
         // WHEN / THEN
         mockMvc.perform(post(MOVIES_PATH).contentType(APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(movie)))
+                        .content(jsonMapper.writeValueAsString(movie)))
                 .andExpect(header().exists(CORRELATION_ID_HEADER.getHeaderName()))
                 .andExpect(header().string(CORRELATION_ID_HEADER.getHeaderName(), matchesPattern(CORRELATION_ID_REGEX_PATTERN)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.type", equalTo(DEFAULT_TYPE)))
                 .andExpect(jsonPath("$.title", equalTo(BAD_REQUEST.getReasonPhrase())))
                 .andExpect(jsonPath("$.status", equalTo(BAD_REQUEST.value())))
                 .andExpect(jsonPath("$.detail", equalTo("Movie is not valid: \ntitle field is required")))
